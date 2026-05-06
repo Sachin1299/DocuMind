@@ -54,6 +54,9 @@ public class AiUtility {
 	            "model", "text-embedding-3-small",
 	            "input", chunks
 	    );
+	    try {
+	    	
+	    
 
 	    Map response = webclient.post()
 	            .uri("/embeddings")
@@ -61,12 +64,19 @@ public class AiUtility {
 	            .retrieve()
 	            .bodyToMono(Map.class)
 	            .block();
+	    
+	   
 
 	    List<Map<String, Object>> data =
 	            (List<Map<String, Object>>) response.get("data");
+	    
 
 	    return data.stream()
 	            .map(d -> (List<Double>) d.get("embedding"))
 	            .toList();
+	    }catch(Exception e) {
+	    	System.out.println(e.getMessage());
+	    }
+	    return null;
 	}
 }
