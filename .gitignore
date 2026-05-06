@@ -1,33 +1,89 @@
-HELP.md
+# =========================
+# Compiled class files
+# =========================
+*.class
+
+# =========================
+# Logs
+# =========================
+*.log
+logs/
+*.out
+
+# =========================
+# Build directories
+# =========================
 target/
+build/
+out/
+
+# =========================
+# Maven
+# =========================
 .mvn/wrapper/maven-wrapper.jar
-!**/src/main/**/target/
-!**/src/test/**/target/
 
-### STS ###
-.apt_generated
-.classpath
-.factorypath
+# =========================
+# Gradle
+# =========================
+.gradle/
+!gradle/wrapper/gradle-wrapper.jar
+
+# =========================
+# IDE - Eclipse
+# =========================
 .project
-.settings
+.classpath
+.settings/
 .springBeans
-.sts4-cache
+.sts4-cache/
 
-### IntelliJ IDEA ###
-.idea
-*.iws
+# =========================
+# IDE - IntelliJ
+# =========================
+.idea/
 *.iml
+*.iws
 *.ipr
 
-### NetBeans ###
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
-build/
-!**/src/main/**/build/
-!**/src/test/**/build/
-
-### VS Code ###
+# =========================
+# VS Code
+# =========================
 .vscode/
+
+# =========================
+# OS files
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# Spring Boot
+# =========================
+*.jar
+*.war
+*.ear
+
+# (Optional) If you build jars but want to keep them, comment above line
+
+# =========================
+# Environment files
+# =========================
+.env
+application.properties
+application.yml
+
+# ⚠️ If you have sensitive data (DB passwords, API keys),
+# ignore them or use application-*.properties instead
+
+# =========================
+# Temporary files
+# =========================
+*.tmp
+*.swp
+*~
+
+# =========================
+# Test output
+# =========================
+/test-output/
+/surefire-reports/
