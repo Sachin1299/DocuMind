@@ -9,18 +9,30 @@ import org.springframework.web.reactive.function.client.WebClient;
 public class WebClientConfig {
 	
 	@Value("${com.sachin.URL}")
-	private String API;
+	private String AIAPI;
 	
 	@Value("${com.sachin.Token}")
-	private String token;
+	private String AItoken;
 	
-	@Bean
+	@Value("${db.qdrant.url}")
+	private String QdrantURL;
+	
+	@Bean("AiRequest")
 	public WebClient webclient() {
 		return WebClient.builder()
-				.baseUrl(API)
+				.baseUrl(AIAPI)
 				.defaultHeader("Content-Type", "application/json")
-				.defaultHeader("Authorization", token)
+				.defaultHeader("Authorization", AItoken)
 				.build();
 	}
+	
+	@Bean("QdrantRequest")
+	public WebClient webclientforqdrant() {
+		return WebClient.builder()
+				.baseUrl(QdrantURL)
+				.defaultHeader("Content-Type", "application/json")
+				.build();
+	}
+	
 
 }

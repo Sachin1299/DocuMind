@@ -4,21 +4,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
 import org.springframework.web.reactive.function.client.WebClient;
-
-import com.sachin.documind.dto.ChunkEmbedding;
 
 @Component
 public class AiUtility {
 
-	private final RestTemplate restTemplate = new RestTemplate();
 
 	private WebClient webclient;
 
@@ -34,7 +25,12 @@ public class AiUtility {
 			body.put("model", "text-embedding-3-small");
 			body.put("input", chunks);
 
-			Map response = webclient.post().uri("/embeddings").bodyValue(body).retrieve().bodyToMono(Map.class).block();
+			Map response = webclient.post()
+					.uri("/embeddings")
+					.bodyValue(body)
+					.retrieve()
+					.bodyToMono(Map.class)
+					.block();
 
 			List<Map<String, Object>> data = (List<Map<String, Object>>) response.get("data");
 
