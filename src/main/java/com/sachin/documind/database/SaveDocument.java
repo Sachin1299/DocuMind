@@ -1,19 +1,26 @@
 package com.sachin.documind.database;
 
-import java.util.List;
 
 import org.springframework.stereotype.Repository;
 
-import com.sachin.documind.dto.ChunkEmbedding;
+import com.sachin.documind.dto.QdrantRequest;
+import com.sachin.documind.utility.QdrantAPI;
 
 @Repository
 public class SaveDocument {
 	
-	public boolean save(List<ChunkEmbedding> embeddings) {
-		
-		
-		
-		return false;
+	private final QdrantAPI qdrantAPI;
+	
+	
+	public SaveDocument(QdrantAPI qdrantAPI) {
+		super();
+		this.qdrantAPI = qdrantAPI;
+	}
+
+
+
+	public String save(QdrantRequest requestBody) {
+		return qdrantAPI.saveData(requestBody);
 	}
 
 }

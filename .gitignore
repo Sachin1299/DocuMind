@@ -87,3 +87,4 @@ application.yml
 # =========================
 /test-output/
 /surefire-reports/
+/HELP.md

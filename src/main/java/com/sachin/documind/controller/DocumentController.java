@@ -10,33 +10,36 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.sachin.documind.dto.ChunkEmbedding;
-import com.sachin.documind.service.DocumentReader;
+import com.sachin.documind.dto.QdrantSearchResponse;
+import com.sachin.documind.service.DocumentService;
+import com.sachin.documind.service.SearchService;
 
 @RestController("/document")
 public class DocumentController {
 
-	private final DocumentReader documentReaderService;
+	private final DocumentService documentService;
+	private final SearchService searchService;
 
-	public DocumentController(DocumentReader documentReaderService) {
+	public DocumentController(DocumentService documentService, SearchService searchService) {
 		super();
-		this.documentReaderService = documentReaderService;
+		this.documentService = documentService;
+		this.searchService = searchService;
 	}
 	
 	@PostMapping("upload/document")
-	public ResponseEntity<List<ChunkEmbedding>> documentReader(@RequestParam("file") MultipartFile file) {
+	public ResponseEntity<String> documentReader(@RequestParam("file") MultipartFile file) {
 	    try {
-	        return ResponseEntity.ok(documentReaderService.generateEmbeddingForFile(file));
+	        return ResponseEntity.ok(documentService.saveAndRead(file));
 	    } catch (Exception e) {
-	        return ResponseEntity.badRequest().body(Collections.emptyList());
+	        return ResponseEntity.badRequest().body("failed");
 	    }
 	}
 	
 	@PostMapping("/upload/string")
-	private ResponseEntity<List<Double>> StringReader(@RequestParam String myText){
+	private ResponseEntity<QdrantSearchResponse> StringReader(@RequestParam String myText){
 		 
 		try {
-			List<Double> result = (List<Double>)documentReaderService.generateEmbeddingForText(myText);
-		    return ResponseEntity.ok(result);
+			 return ResponseEntity.ok(searchService.search(myText));
 		}catch(Exception e) {
 			System.out.println("error in catch block of controller");
 			System.out.println("-----------------------------------------------------------------------");
