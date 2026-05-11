@@ -8,6 +8,8 @@ import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.apache.poi.xwpf.extractor.XWPFWordExtractor;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -22,6 +24,7 @@ public class DocumentService {
 
 	private final EmbeddingGenerator embeddingGeneratorService;
 	private final SaveDocument repository;
+	private static final Logger logger = LoggerFactory.getLogger(DocumentService.class);
 
 	public DocumentService(EmbeddingGenerator embeddingGeneratorService, SaveDocument repository) {
 		super();
@@ -30,15 +33,23 @@ public class DocumentService {
 	}
 
 	public String saveAndRead(MultipartFile file) {
-
+		
+		logger.info("Calling generateEmbeddingForFile method for {} file",file.getOriginalFilename());
 		List<ChunkEmbedding> embeddings = generateEmbeddingForFile(file);
+		logger.info("Embedding succesfully generated for {} file",file.getOriginalFilename());
+		
+		logger.info("Calling createBody method");
 		QdrantRequest requestBody = createBody(embeddings, file);
+		logger.info("RequestBody successfully generated");
+		
+		logger.info("Calling save method to save embedding in db");
 		return repository.save(requestBody);
 	}
 
 
 	public QdrantRequest createBody(List<ChunkEmbedding> embeddings, MultipartFile file) {
 
+		logger.info("Inside the createBody() method");
 		QdrantRequest result = new QdrantRequest();
 
 		List<Points> points = new ArrayList<>();
@@ -66,27 +77,37 @@ public class DocumentService {
 	
 	public List<ChunkEmbedding> generateEmbeddingForFile(MultipartFile file) {
 
+		logger.info("Inside generateEmbeddingForFile method()");
 		String content = "";
 
 		try {
 			String fileName = file.getOriginalFilename();
 
 			if (fileName == null) {
+				logger.error("File name is missing");
 				throw new RuntimeException("File name is missing");
 			}
 
 			fileName = fileName.toLowerCase();
 
 			if (fileName.endsWith(".pdf")) {
+				logger.info("File identified as a pdf");
 				content = extractFromPdf(file);
+				logger.info("Text extracted successfully");
 			} else if (fileName.endsWith(".docx")) {
+				logger.info("File identified as a pdf");
 				content = extractFromDocx(file);
+				logger.info("Text extracted successfully");
 			} else if (fileName.endsWith(".txt") || fileName.endsWith(".csv")) {
+				logger.info("File identified as a text/csv");
 				content = new String(file.getBytes());
+				logger.info("Text extracted successfully");
 			} else {
+				logger.error("Unsupported file type for file {}",fileName);
 				throw new RuntimeException("Unsupported file type: " + fileName);
 			}
 
+			logger.info("cleaning text");
 			// ✅ Clean ALL text
 			content = content.replaceAll("\\s+", " ").trim();
 
@@ -96,10 +117,12 @@ public class DocumentService {
 
 			// Step 1: Chunking
 			List<String> chunks = chunkText(content, 300);
+			logger.info("Text divided into chunks successfully");
 
 			// Step 2: Map to DTO
 			List<ChunkEmbedding> chunkEmbeddings = chunks.stream().map(ChunkEmbedding::new).toList();
 
+			logger.info("Generating Embedding for chunks");
 			// Step 3: generate embedding
 			return embeddingGeneratorService.embeddingGenertorForFileText(chunks, chunkEmbeddings, 5);
 
@@ -109,6 +132,7 @@ public class DocumentService {
 	}
 	
 	private String extractFromPdf(MultipartFile file) throws IOException {
+		logger.info("Inside extractFromPdf method");
 		try (PDDocument document = PDDocument.load(file.getInputStream())) {
 			PDFTextStripper stripper = new PDFTextStripper();
 			return stripper.getText(document);
@@ -116,6 +140,7 @@ public class DocumentService {
 	}
 
 	private String extractFromDocx(MultipartFile file) throws IOException {
+		logger.info("Inside extractFromDocx method");
 		try (XWPFDocument document = new XWPFDocument(file.getInputStream());
 				XWPFWordExtractor extractor = new XWPFWordExtractor(document)) {
 			return extractor.getText();
@@ -124,6 +149,7 @@ public class DocumentService {
 	
 	
 	private List<String> chunkText(String text, int chunkSize) {
+		logger.info("Inside chunkText method");
 		List<String> chunks = new ArrayList<>();
 
 		// ✅ Dynamic overlap (10–20% with bounds)

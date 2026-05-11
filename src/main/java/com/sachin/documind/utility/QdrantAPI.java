@@ -1,5 +1,7 @@
 package com.sachin.documind.utility;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Repository;
@@ -15,29 +17,50 @@ public class QdrantAPI {
 	@Autowired
 	@Qualifier("QdrantRequest")
 	private WebClient webclient;
-	
+	private static final Logger logger = LoggerFactory.getLogger(QdrantAPI.class);
 	public String saveData(QdrantRequest requestBody) {
-		
-        String response = webclient.put()
-                .uri("/collections/documents/points")
-                .bodyValue(requestBody)
-                .retrieve()
-                .bodyToMono(String.class)
-                .block();
+		logger.info("Inside saveData");
+		try {
+	        String response = webclient.put()
+	                .uri("/collections/documents/points")
+	                .bodyValue(requestBody)
+	                .retrieve()
+	                .bodyToMono(String.class)
+	                .block();
 
-        return response != null?response:null;
-		
+	        if(response!=null) {
+				logger.info("Embedding saved successfully in db");
+				return response;
+	        }
+	        else {
+				logger.warn("empty response from db api");
+				return null;
+	        }
+		}catch(Exception e) {
+			logger.error("Issue in db save api");
+			return null;
+		}
+	
 	}
 	
 	public QdrantSearchResponse getData(UserQueryPayload payload) {
-		QdrantSearchResponse response = webclient.post()
-                .uri("/collections/documents/points/search")
-                .bodyValue(payload)
-                .retrieve()
-                .bodyToMono(QdrantSearchResponse.class)
-                .block();
+		logger.info("Inside getData");
+		try {
+			QdrantSearchResponse response = webclient.post()
+	                .uri("/collections/documents/points/search")
+	                .bodyValue(payload)
+	                .retrieve()
+	                .bodyToMono(QdrantSearchResponse.class)
+	                .block();
+			logger.info("searched succesfully in db");
+	        return response;
+		}catch(Exception e) {
+			logger.error("Issue in db search api");
+			return null;
+		}
 
-        return response;
+		
+
 		
 	}
 	

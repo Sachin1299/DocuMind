@@ -2,6 +2,8 @@ package com.sachin.documind.service;
 
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import com.sachin.documind.dto.ChunkEmbedding;
@@ -11,33 +13,17 @@ import com.sachin.documind.utility.AiUtility;
 public class EmbeddingGenerator {
 
 	private final AiUtility aiUtility;
+	private static final Logger logger = LoggerFactory.getLogger(EmbeddingGenerator.class);
 
 	public EmbeddingGenerator(AiUtility aiUtility) {
 		super();
 		this.aiUtility = aiUtility;
 	}
 
-//	public List<Double> embeddingGenertorForFileText(String myText) {
-//		List<String> chunks = new ArrayList<String>();
-//		int start = 0;
-//		int end = 0;
-//		while (start < myText.length()) {
-//			end = Math.min(start + CHUNCK__SIZE, myText.length());
-//			chunks.add(myText.substring(start, end));
-//			start += (CHUNCK__SIZE - overlap);
-//		}
-//		try {
-//			return aiUtility.generateEmbeddingUsingAi(chunks);
-//		} catch (Exception e) {
-//			System.out.println("exception in generate embedding method");
-//		}
-//
-//		return null;
-//	}
-
 	public List<ChunkEmbedding> embeddingGenertorForFileText(List<String> chunks, List<ChunkEmbedding> chunkEmbeddings,
 			int batchSize) {
 
+		logger.info("Inside embeddingGenertorForFileText method");
 		for (int i = 0; i < chunks.size(); i += batchSize) {
 
 			List<String> batch = chunks.subList(i, Math.min(i + batchSize, chunks.size()));
@@ -53,6 +39,7 @@ public class EmbeddingGenerator {
 	}
 	
 	public ChunkEmbedding embeddingGenertorForText(String userQuery) {
+		logger.info("Inside embeddingGenertorForText method");
 		ChunkEmbedding chunkEmbedding = new ChunkEmbedding();
 		List<Double> embeddings = aiUtility.generateEmbeddings(userQuery);
 		chunkEmbedding.setEmbedding(embeddings);
