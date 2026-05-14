@@ -1,0 +1,126 @@
+package com.sachin.documind.service.impl;
+
+import com.sachin.documind.dto.ChunkEmbedding;
+import com.sachin.documind.dto.Payload;
+import com.sachin.documind.dto.Points;
+import com.sachin.documind.dto.QdrantRequest;
+import com.sachin.documind.exception.DocumentProcessingException;
+import com.sachin.documind.repository.IVectorDbRepository;
+import com.sachin.documind.service.IDocumentService;
+import com.sachin.documind.service.ILlmService;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.text.PDFTextStripper;
+import org.apache.poi.xwpf.extractor.XWPFWordExtractor;
+import org.apache.poi.xwpf.usermodel.XWPFDocument;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+@Service
+public class DocumentServiceImpl implements IDocumentService {
+    private final ILlmService llmService;
+    private final IVectorDbRepository vectorDbRepository;
+    private static final Logger logger = LoggerFactory.getLogger(DocumentServiceImpl.class);
+
+    public DocumentServiceImpl(ILlmService llmService, IVectorDbRepository vectorDbRepository) {
+        this.llmService = llmService;
+        this.vectorDbRepository = vectorDbRepository;
+    }
+
+    @Override
+    public String saveAndRead(MultipartFile file) {
+        logger.info("Processing file: {}", file.getOriginalFilename());
+        List<ChunkEmbedding> embeddings = generateEmbeddingForFile(file);
+        QdrantRequest requestBody = createBody(embeddings, file);
+        return vectorDbRepository.saveData(requestBody);
+    }
+
+    private QdrantRequest createBody(List<ChunkEmbedding> embeddings, MultipartFile file) {
+        List<Points> points = new ArrayList<>();
+        int id = (int) (System.currentTimeMillis() % Integer.MAX_VALUE);
+        String fileName = file.getOriginalFilename();
+        String fileType = "";
+        if (fileName != null && fileName.contains(".")) {
+            fileType = fileName.substring(fileName.lastIndexOf('.'));
+        }
+        String createdAt = java.time.LocalDateTime.now().toString();
+        int chunkIndex = 0;
+        int totalChunks = embeddings.size();
+
+        for (ChunkEmbedding chunk : embeddings) {
+            Payload payload = new Payload(chunk.text(), fileName, fileType, chunkIndex++, totalChunks, createdAt);
+            Points point = new Points(id++, payload, chunk.embedding());
+            points.add(point);
+        }
+        return new QdrantRequest(points);
+    }
+
+    private List<ChunkEmbedding> generateEmbeddingForFile(MultipartFile file) {
+        String fileName = file.getOriginalFilename();
+        if (fileName == null) throw new DocumentProcessingException("File name is missing");
+        
+        String content;
+        try {
+            fileName = fileName.toLowerCase();
+            if (fileName.endsWith(".pdf")) {
+                content = extractFromPdf(file);
+            } else if (fileName.endsWith(".docx")) {
+                content = extractFromDocx(file);
+            } else if (fileName.endsWith(".txt") || fileName.endsWith(".csv")) {
+                content = new String(file.getBytes());
+            } else {
+                throw new DocumentProcessingException("Unsupported file type: " + fileName);
+            }
+        } catch (IOException e) {
+            throw new DocumentProcessingException("Error extracting text from file", e);
+        }
+
+        content = content.replaceAll("\\s+", " ").trim();
+        if (content.isEmpty()) {
+            throw new DocumentProcessingException("File has no readable text.");
+        }
+
+        List<String> chunks = chunkText(content, 300);
+        
+        List<ChunkEmbedding> chunkEmbeddings = new ArrayList<>();
+        int batchSize = 5;
+        for (int i = 0; i < chunks.size(); i += batchSize) {
+            List<String> batch = chunks.subList(i, Math.min(i + batchSize, chunks.size()));
+            List<List<Double>> embeddings = llmService.generateEmbeddings(batch);
+            for (int j = 0; j < embeddings.size(); j++) {
+                chunkEmbeddings.add(new ChunkEmbedding(batch.get(j), embeddings.get(j)));
+            }
+        }
+        return chunkEmbeddings;
+    }
+
+    private String extractFromPdf(MultipartFile file) throws IOException {
+        try (PDDocument document = PDDocument.load(file.getInputStream())) {
+            PDFTextStripper stripper = new PDFTextStripper();
+            return stripper.getText(document);
+        }
+    }
+
+    private String extractFromDocx(MultipartFile file) throws IOException {
+        try (XWPFDocument document = new XWPFDocument(file.getInputStream());
+             XWPFWordExtractor extractor = new XWPFWordExtractor(document)) {
+            return extractor.getText();
+        }
+    }
+
+    private List<String> chunkText(String text, int chunkSize) {
+        List<String> chunks = new ArrayList<>();
+        int overlap = Math.max(30, Math.min(chunkSize / 5, 100));
+        int step = chunkSize - overlap;
+        for (int i = 0; i < text.length(); i += step) {
+            int end = Math.min(i + chunkSize, text.length());
+            chunks.add(text.substring(i, end));
+            if (end == text.length()) break;
+        }
+        return chunks;
+    }
+}
