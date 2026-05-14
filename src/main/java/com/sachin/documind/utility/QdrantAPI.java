@@ -20,7 +20,7 @@ public class QdrantAPI {
 	private static final Logger logger = LoggerFactory.getLogger(QdrantAPI.class);
 	public String saveData(QdrantRequest requestBody) {
 		logger.info("Inside saveData");
-		try {
+
 	        String response = webclient.put()
 	                .uri("/collections/documents/points")
 	                .bodyValue(requestBody)
@@ -36,16 +36,13 @@ public class QdrantAPI {
 				logger.warn("empty response from db api");
 				return null;
 	        }
-		}catch(Exception e) {
-			logger.error("Issue in db save api");
-			return null;
-		}
+
 	
 	}
 	
 	public QdrantSearchResponse getData(UserQueryPayload payload) {
 		logger.info("Inside getData");
-		try {
+		
 			QdrantSearchResponse response = webclient.post()
 	                .uri("/collections/documents/points/search")
 	                .bodyValue(payload)
@@ -54,13 +51,6 @@ public class QdrantAPI {
 	                .block();
 			logger.info("searched succesfully in db");
 	        return response;
-		}catch(Exception e) {
-			logger.error("Issue in db search api");
-			return null;
-		}
-
-		
-
 		
 	}
 	

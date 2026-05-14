@@ -38,16 +38,12 @@ public class DocumentController {
 	
 	@PostMapping("/search/string")
 	private ResponseEntity<QdrantSearchResponse> StringReader(@RequestParam String myText){
-		 
 		try {
 			logger.info("Request Received on /search/string");
 			 return ResponseEntity.ok(searchService.search(myText));
 		}catch(Exception e) {
 			logger.error("Error in Controller of /search/string. Error: ", e.getMessage());
-			return ResponseEntity.badRequest().build();
+			return ResponseEntity.internalServerError().build();
 		}
-		
-		
-		
 	}
 }
