@@ -8,5 +8,7 @@ public record Payload(
     String fileType,
     Integer chunkIndex,
     Integer totalChunks,
-    String createdAt
+    String createdAt,
+    Long userId,
+    String documentId
 ) {}

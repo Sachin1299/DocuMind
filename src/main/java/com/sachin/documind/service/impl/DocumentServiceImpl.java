@@ -1,11 +1,10 @@
 package com.sachin.documind.service.impl;
 
-import com.sachin.documind.dto.ChunkEmbedding;
-import com.sachin.documind.dto.Payload;
-import com.sachin.documind.dto.Points;
-import com.sachin.documind.dto.QdrantRequest;
+import com.sachin.documind.dto.*;
+import com.sachin.documind.dto.response.UserFileResponse;
 import com.sachin.documind.exception.DocumentProcessingException;
 import com.sachin.documind.repository.IVectorDbRepository;
+import com.sachin.documind.repository.UserRepository;
 import com.sachin.documind.service.IDocumentService;
 import com.sachin.documind.service.ILlmService;
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -14,32 +13,82 @@ import org.apache.poi.xwpf.extractor.XWPFWordExtractor;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class DocumentServiceImpl implements IDocumentService {
     private final ILlmService llmService;
     private final IVectorDbRepository vectorDbRepository;
+    private final UserRepository userRepository;
     private static final Logger logger = LoggerFactory.getLogger(DocumentServiceImpl.class);
 
-    public DocumentServiceImpl(ILlmService llmService, IVectorDbRepository vectorDbRepository) {
+    public DocumentServiceImpl(ILlmService llmService, IVectorDbRepository vectorDbRepository, UserRepository userRepository) {
         this.llmService = llmService;
         this.vectorDbRepository = vectorDbRepository;
+        this.userRepository = userRepository;
+    }
+
+    @Override
+    public List<UserFileResponse> getUserFiles() {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        Long userId = userRepository.findByUsernameOrEmail(username, username)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username))
+                .getId();
+
+        Map<String, Object> filter = Map.of("must", List.of(
+                Map.of("key", "userId", "match", Map.of("value", userId))
+        ));
+
+        QdrantScrollRequest scrollRequest = new QdrantScrollRequest(
+                filter,
+                100,
+                true,
+                false,
+                null
+        );
+
+        QdrantScrollResponse response = vectorDbRepository.fetchVectors(scrollRequest);
+
+        if (response == null || response.result() == null || response.result().points() == null) {
+            return List.of();
+        }
+
+        return response.result().points().stream()
+                .map(SearchResult::payload)
+                .filter(payload -> payload != null && payload.documentId() != null)
+                .collect(Collectors.toMap(
+                        Payload::documentId,
+                        p -> new UserFileResponse(p.documentId(), p.file(), p.fileType(), p.createdAt()),
+                        (existing, replacement) -> existing
+                ))
+                .values().stream()
+                .sorted(Comparator.comparing(UserFileResponse::createdAt).reversed())
+                .toList();
     }
 
     @Override
     public String saveAndRead(MultipartFile file) {
         logger.info("Processing file: {}", file.getOriginalFilename());
+
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        Long userId = userRepository.findByUsernameOrEmail(username, username)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username))
+                .getId();
+        String documentId = UUID.randomUUID().toString();
+
         List<ChunkEmbedding> embeddings = generateEmbeddingForFile(file);
-        QdrantRequest requestBody = createBody(embeddings, file);
+        QdrantRequest requestBody = createBody(embeddings, file, userId, documentId);
         return vectorDbRepository.saveData(requestBody);
     }
 
-    private QdrantRequest createBody(List<ChunkEmbedding> embeddings, MultipartFile file) {
+    private QdrantRequest createBody(List<ChunkEmbedding> embeddings, MultipartFile file, Long userId, String documentId) {
         List<Points> points = new ArrayList<>();
         int id = (int) (System.currentTimeMillis() % Integer.MAX_VALUE);
         String fileName = file.getOriginalFilename();
@@ -47,12 +96,12 @@ public class DocumentServiceImpl implements IDocumentService {
         if (fileName != null && fileName.contains(".")) {
             fileType = fileName.substring(fileName.lastIndexOf('.'));
         }
-        String createdAt = java.time.LocalDateTime.now().toString();
+        String createdAt = LocalDateTime.now().toString();
         int chunkIndex = 0;
         int totalChunks = embeddings.size();
 
         for (ChunkEmbedding chunk : embeddings) {
-            Payload payload = new Payload(chunk.text(), fileName, fileType, chunkIndex++, totalChunks, createdAt);
+            Payload payload = new Payload(chunk.text(), fileName, fileType, chunkIndex++, totalChunks, createdAt, userId, documentId);
             Points point = new Points(id++, payload, chunk.embedding());
             points.add(point);
         }
