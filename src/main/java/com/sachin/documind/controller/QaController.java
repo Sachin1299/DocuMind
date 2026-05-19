@@ -1,5 +1,6 @@
 package com.sachin.documind.controller;
 
+import com.sachin.documind.dto.LlmResponse;
 import com.sachin.documind.dto.QaRequest;
 import com.sachin.documind.dto.response.ApiResponse;
 import com.sachin.documind.service.ISearchAndAnswerService;
@@ -18,8 +19,8 @@ public class QaController {
     }
 
     @PostMapping("/ask")
-    public ResponseEntity<ApiResponse<String>> askQuestion(@Valid @RequestBody QaRequest request) {
-        String answer = searchAndAnswerService.searchAndAnswer(request);
+    public ResponseEntity<ApiResponse<LlmResponse>> askQuestion(@Valid @RequestBody QaRequest request) {
+        LlmResponse answer = searchAndAnswerService.searchAndAnswer(request);
         return ResponseEntity.ok(ApiResponse.success(answer, "Successfully retrieved answer"));
     }
 }

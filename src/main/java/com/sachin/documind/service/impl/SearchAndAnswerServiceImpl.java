@@ -1,5 +1,6 @@
 package com.sachin.documind.service.impl;
 
+import com.sachin.documind.dto.LlmResponse;
 import com.sachin.documind.dto.QaRequest;
 import com.sachin.documind.dto.QdrantSearchResponse;
 import com.sachin.documind.dto.SearchResult;
@@ -28,7 +29,7 @@ public class SearchAndAnswerServiceImpl implements ISearchAndAnswerService {
     }
 
     @Override
-    public String searchAndAnswer(QaRequest request) {
+    public LlmResponse searchAndAnswer(QaRequest request) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         Long userId = userRepository.findByUsernameOrEmail(username, username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username))

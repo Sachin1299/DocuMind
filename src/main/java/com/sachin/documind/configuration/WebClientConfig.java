@@ -1,5 +1,6 @@
 package com.sachin.documind.configuration;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,6 +17,11 @@ public class WebClientConfig {
 	
 	@Value("${db.qdrant.url}")
 	private String QdrantURL;
+
+	@Bean
+	public ObjectMapper objectMapper() {
+		return new ObjectMapper();
+	}
 	
 	@Bean("AiRequest")
 	public WebClient webclient() {
