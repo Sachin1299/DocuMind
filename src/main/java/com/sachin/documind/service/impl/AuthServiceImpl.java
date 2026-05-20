@@ -33,6 +33,13 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public String login(LoginRequest loginRequest) {
+        User user = userRepository.findByUsernameOrEmail(loginRequest.usernameOrEmail(), loginRequest.usernameOrEmail())
+                .orElseThrow(() -> new org.springframework.security.authentication.BadCredentialsException("Invalid username or password"));
+
+        if (user.getProvider() != com.sachin.documind.entity.AuthProvider.LOCAL) {
+            throw new org.springframework.security.authentication.BadCredentialsException("Looks like you signed up using OAuth. Please use your " + user.getProvider() + " account to login.");
+        }
+
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         loginRequest.usernameOrEmail(),

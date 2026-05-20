@@ -27,6 +27,10 @@ public class User {
     @Column(nullable = false)
     private String password;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private AuthProvider provider = AuthProvider.LOCAL;
+
     public User() {}
 
     public User(String name, String username, String email, String password) {
@@ -50,6 +54,9 @@ public class User {
 
     public String getPassword() { return password; }
     public void setPassword(String password) { this.password = password; }
+
+    public AuthProvider getProvider() { return provider; }
+    public void setProvider(AuthProvider provider) { this.provider = provider; }
 
     @Override
     public boolean equals(Object o) {
