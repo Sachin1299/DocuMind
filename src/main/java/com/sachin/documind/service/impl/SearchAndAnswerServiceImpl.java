@@ -52,7 +52,7 @@ public class SearchAndAnswerServiceImpl implements ISearchAndAnswerService {
 
         Map<String, Object> filter = Map.of("must", mustConditions);
 
-        UserQueryPayload payload = new UserQueryPayload(questionEmbedding, 3, true, filter);
+        UserQueryPayload payload = new UserQueryPayload(questionEmbedding, 10, true, filter);
         QdrantSearchResponse searchResponse = vectorDbRepository.searchData(payload);
         
         StringBuilder contextBuilder = new StringBuilder();
