@@ -82,8 +82,9 @@ public class DocumentServiceImpl implements IDocumentService {
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username))
                 .getId();
         String documentId = UUID.randomUUID().toString();
-
+        logger.info("Generating Embeddings for document {}",documentId);
         List<ChunkEmbedding> embeddings = generateEmbeddingForFile(file);
+        logger.info("Embeddings Generated for document {}",documentId);
         QdrantRequest requestBody = createBody(embeddings, file, userId, documentId);
         return vectorDbRepository.saveData(requestBody);
     }

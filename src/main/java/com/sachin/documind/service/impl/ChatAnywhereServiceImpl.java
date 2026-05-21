@@ -29,8 +29,8 @@ public class ChatAnywhereServiceImpl implements ILlmService {
 			ENHANCED LOGIC:
 			- If the user asks about an entity's attribute (e.g. "years of experience") and the context mentions the entity's history, use that history to provide a grounded answer.
 			
-			CASE 1: Ambiguity -> {"ambiguity": true, "answer": "", "suggestions": [...]}
-			CASE 2: Not Found -> {"ambiguity": false, "answer": "I could not find the answer in the provided document.", "suggestions": []}
+			CASE 1: Ambiguity -> Use ONLY when context contains related partial info but requires clarification. Suggestions are MANDATORY. {"ambiguity": true, "answer": "", "suggestions": ["clarifying question 1", "clarifying question 2"]}
+			CASE 2: Not Found -> Use when context contains NO relevant info about the query. {"ambiguity": false, "answer": "I could not find the answer in the provided document.", "suggestions": []}
 			CASE 3: Found -> {"ambiguity": false, "answer": "The grounded answer...", "suggestions": []}
 			
 			CONTEXT:
@@ -45,9 +45,11 @@ public class ChatAnywhereServiceImpl implements ILlmService {
 	@Override
 	public List<Double> generateEmbedding(String text) {
 		try {
+			logger.info("Generating Embeddings for User's question");
 			Map<String, Object> body = Map.of("model", "text-embedding-3-small", "input", text);
 			Map response = webClient.post().uri("/embeddings").bodyValue(body).retrieve().bodyToMono(Map.class).block();
 			List<Map<String, Object>> data = (List<Map<String, Object>>) response.get("data");
+			logger.info("Embedding generated for user's question");
 			return (List<Double>) data.get(0).get("embedding");
 		} catch (Exception e) {
 			throw new ExternalServiceException("Failed to generate embedding: " + e.getMessage(), e);
@@ -57,9 +59,11 @@ public class ChatAnywhereServiceImpl implements ILlmService {
 	@Override
 	public List<List<Double>> generateEmbeddings(List<String> texts) {
 		try {
+			logger.info("Generating Embeddings for document chunk");
 			Map<String, Object> body = Map.of("model", "text-embedding-3-small", "input", texts);
 			Map response = webClient.post().uri("/embeddings").bodyValue(body).retrieve().bodyToMono(Map.class).block();
 			List<Map<String, Object>> data = (List<Map<String, Object>>) response.get("data");
+			logger.info("Embeddings generated for document chunk");
 			return data.stream().map(d -> (List<Double>) d.get("embedding")).toList();
 		} catch (Exception e) {
 			throw new ExternalServiceException("Failed to generate batch embeddings: " + e.getMessage(), e);

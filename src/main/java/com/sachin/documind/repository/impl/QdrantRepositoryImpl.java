@@ -32,6 +32,7 @@ public class QdrantRepositoryImpl implements IVectorDbRepository {
                     .bodyToMono(String.class)
                     .block();
             if (response != null) {
+            	logger.info("Document saved in db");
                 return response;
             } else {
                 throw new ExternalServiceException("Empty response from Qdrant API on save.");
