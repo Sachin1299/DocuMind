@@ -88,3 +88,11 @@ application.yml
 /test-output/
 /surefire-reports/
 /HELP.md
+
+# =========================
+# Documentation & Uploads
+# =========================
+docs/
+*.pdf
+*.docx
+*.txt
