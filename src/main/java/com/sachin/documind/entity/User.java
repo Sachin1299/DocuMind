@@ -30,14 +30,19 @@ public class User {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private AuthProvider provider = AuthProvider.LOCAL;
+    
+    @OneToOne
+    @JoinColumn(name = "chat_history_id")
+    private ChatHistory chatHistory;
 
     public User() {}
 
-    public User(String name, String username, String email, String password) {
+    public User(String name, String username, String email, String password, ChatHistory chatHistory) {
         this.name = name;
         this.username = username;
         this.email = email;
         this.password = password;
+        this.chatHistory = chatHistory;
     }
 
     public Long getId() { return id; }
@@ -58,7 +63,15 @@ public class User {
     public AuthProvider getProvider() { return provider; }
     public void setProvider(AuthProvider provider) { this.provider = provider; }
 
-    @Override
+    public ChatHistory getChatHistory() {
+		return chatHistory;
+	}
+
+	public void setChatHistory(ChatHistory chatHistory) {
+		this.chatHistory = chatHistory;
+	}
+
+	@Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
